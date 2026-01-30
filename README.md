@@ -17,3 +17,14 @@ Before running this project, ensure you have:
 Open your terminal and run the following command to download the model used in the code:
 ```bash
 ollama pull qwen2.5-coder:1.5b-base
+
+### 2.  Clone the Project
+Note: Make sure the Ollama app is running in your system tray.
+```bash
+git clone https://github.com
+cd OllamaandJava
+
+### 2.   Build & Run
+Open your terminal and run the following command to download the model used in the code:
+```bash
+mvn clean compile exec:java -Dexec.mainClass="org.ollamajava.OllamaStreamingChat"
