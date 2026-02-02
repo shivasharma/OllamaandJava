@@ -1,0 +1,192 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-blog-post-ollama",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "bb160d9d-daaf-4c07-ab4f-8909af0f838c",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        -784
+      ],
+      "webhookId": "create-blog-post-ollama"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"{{ $json.body.model || 'qwen2.5-coder:1.5b-base' }}\",\n  \"prompt\": \"Create a blog post about: {{ $json.body.chatInput }}\\n\\nFormat Requirements:\\n- First line: Clear, engaging title (plain text, no # symbols)\\n- Leave one blank line after title\\n- Use ## for main section headings\\n- Use ### for subsections\\n- Write 800-1200 words\\n- Include relevant code examples if applicable (use ```language syntax)\\n- Include relevant examples and explanations\\n- Write in markdown format\\n- Make it SEO-friendly with natural keyword usage\\n- For images, use markdown format: ![alt text](image-url)\\n\\nImportant: Start directly with the title on line 1, no preamble.\",\n  \"stream\": false,\n  \"options\": {\n    \"temperature\": 0.7,\n    \"top_p\": 0.9\n  }\n}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "d114ed6d-d912-4d08-92cf-4073fd7d51f1",
+      "name": "Generate Content with Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        192,
+        -784
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ollamaResponse = $input.item.json.response || \"\";\n\nif (!ollamaResponse.trim()) {\n  return { \n    json: { \n      title: \"Untitled Post\", \n      content: \"<p>No content generated.</p>\", \n      status: \"draft\",\n      error: \"Empty response from Ollama\"\n    } \n  };\n}\n\n// Modern code block styling with proper escaping\nfunction createModernCodeBlock(code, language = 'plaintext') {\n  // Escape HTML entities\n  const escapedCode = code\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#039;')\n    .trim();\n  \n  const langLabel = language.charAt(0).toUpperCase() + language.slice(1);\n  \n  // Modern WordPress code block with inline styles for guaranteed rendering\n  return `<!-- wp:code -->\n<div class=\"wp-block-code\" style=\"background: #1e1e1e; border-radius: 8px; padding: 20px; margin: 20px 0; position: relative; overflow-x: auto;\">\n  <div style=\"color: #858585; font-size: 12px; margin-bottom: 10px; font-family: 'Courier New', monospace;\">${langLabel}</div>\n  <pre style=\"margin: 0; padding: 0; background: transparent; color: #d4d4d4; font-family: 'Courier New', Consolas, Monaco, monospace; font-size: 14px; line-height: 1.6; overflow-x: auto;\"><code class=\"language-${language}\">${escapedCode}</code></pre>\n</div>\n<!-- /wp:code -->`;\n}\n\n// Modern image block\nfunction createModernImageBlock(url, alt) {\n  const altText = alt || 'Blog image';\n  return `<!-- wp:image -->\n<figure class=\"wp-block-image\" style=\"margin: 30px 0;\">\n  <img src=\"${url}\" alt=\"${altText}\" style=\"border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 100%; height: auto;\" />\n  ${altText !== 'Blog image' ? `<figcaption style=\"text-align: center; color: #666; font-size: 14px; margin-top: 10px;\">${altText}</figcaption>` : ''}\n</figure>\n<!-- /wp:image -->`;\n}\n\n// Enhanced Markdown to HTML converter\nfunction markdownToHTML(markdown) {\n  if (!markdown) return \"\";\n  \n  let html = markdown;\n  \n  // 1. Handle code blocks FIRST with language detection\n  html = html.replace(/```(\\w+)?\\s*\\n([\\s\\S]*?)```/g, (match, lang, code) => {\n    const language = lang || 'plaintext';\n    return createModernCodeBlock(code, language);\n  });\n  \n  // 2. Handle inline code with modern styling\n  html = html.replace(/`([^`]+)`/g, '<code style=\"background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: Consolas, Monaco, monospace; font-size: 0.9em; color: #e83e8c;\">$1</code>');\n  \n  // 3. Handle images\n  html = html.replace(/!\\[([^\\]]*)\\]\\(([^)]+)\\)/g, (match, alt, url) => {\n    return createModernImageBlock(url, alt);\n  });\n  \n  // 4. Headers with modern styling\n  html = html\n    .replace(/^#### (.*$)/gim, '<h4 style=\"color: #2c3e50; margin-top: 25px; margin-bottom: 15px; font-size: 1.2em;\">$1</h4>')\n    .replace(/^### (.*$)/gim, '<h3 style=\"color: #2c3e50; margin-top: 30px; margin-bottom: 15px; font-size: 1.4em; border-bottom: 2px solid #3498db; padding-bottom: 8px;\">$1</h3>')\n    .replace(/^## (.*$)/gim, '<h2 style=\"color: #2c3e50; margin-top: 35px; margin-bottom: 20px; font-size: 1.75em; border-bottom: 3px solid #3498db; padding-bottom: 10px;\">$1</h2>')\n    .replace(/^# (.*$)/gim, '<h1 style=\"color: #2c3e50; margin-top: 40px; margin-bottom: 20px; font-size: 2em;\">$1</h1>');\n  \n  // 5. Bold and Italic\n  html = html\n    .replace(/\\*\\*\\*(.*?)\\*\\*\\*/g, '<strong><em style=\"color: #e74c3c;\">$1</em></strong>')\n    .replace(/\\*\\*(.*?)\\*\\*/g, '<strong style=\"color: #2c3e50;\">$1</strong>')\n    .replace(/\\*(.*?)\\*/g, '<em style=\"color: #34495e;\">$1</em>')\n    .replace(/__(.*?)__/g, '<strong style=\"color: #2c3e50;\">$1</strong>')\n    .replace(/_(.*?)_/g, '<em style=\"color: #34495e;\">$1</em>');\n  \n  // 6. Links with modern styling\n  html = html.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href=\"$2\" style=\"color: #3498db; text-decoration: none; border-bottom: 1px solid #3498db; transition: all 0.3s;\" target=\"_blank\" rel=\"noopener\">$1</a>');\n  \n  // 7. Blockquotes with modern styling\n  html = html.replace(/^> (.*$)/gim, '<blockquote style=\"border-left: 4px solid #3498db; padding-left: 20px; margin: 20px 0; color: #555; font-style: italic; background: #f9f9f9; padding: 15px 20px; border-radius: 4px;\"><p style=\"margin: 0;\">$1</p></blockquote>');\n  \n  // 8. Horizontal rules\n  html = html.replace(/^---$/gim, '<hr style=\"border: none; border-top: 2px solid #ecf0f1; margin: 30px 0;\" />');\n  html = html.replace(/^\\*\\*\\*$/gim, '<hr style=\"border: none; border-top: 2px solid #ecf0f1; margin: 30px 0;\" />');\n  \n  // 9. Lists with modern styling\n  const lines = html.split('\\n');\n  const processedLines = [];\n  let inList = false;\n  let listType = null;\n  let listItems = [];\n  \n  for (let i = 0; i < lines.length; i++) {\n    const line = lines[i].trim();\n    \n    const ulMatch = line.match(/^[*-] (.+)$/);\n    const olMatch = line.match(/^\\d+\\. (.+)$/);\n    \n    if (ulMatch) {\n      if (!inList || listType !== 'ul') {\n        if (inList) {\n          const listStyle = listType === 'ul' \n            ? 'style=\"list-style: none; padding-left: 0; margin: 20px 0;\"'\n            : 'style=\"padding-left: 20px; margin: 20px 0;\"';\n          processedLines.push(`<${listType} ${listStyle}>${listItems.join('')}</${listType}>`);\n          listItems = [];\n        }\n        inList = true;\n        listType = 'ul';\n      }\n      listItems.push(`<li style=\"padding: 8px 0; padding-left: 25px; position: relative;\"><span style=\"position: absolute; left: 0; color: #3498db; font-weight: bold;\">•</span>${ulMatch[1]}</li>`);\n    } else if (olMatch) {\n      if (!inList || listType !== 'ol') {\n        if (inList) {\n          const listStyle = listType === 'ul' \n            ? 'style=\"list-style: none; padding-left: 0; margin: 20px 0;\"'\n            : 'style=\"padding-left: 20px; margin: 20px 0; counter-reset: item;\"';\n          processedLines.push(`<${listType} ${listStyle}>${listItems.join('')}</${listType}>`);\n          listItems = [];\n        }\n        inList = true;\n        listType = 'ol';\n      }\n      listItems.push(`<li style=\"padding: 8px 0; list-style-position: inside; color: #2c3e50;\">${olMatch[1]}</li>`);\n    } else {\n      if (inList) {\n        const listStyle = listType === 'ul' \n          ? 'style=\"list-style: none; padding-left: 0; margin: 20px 0;\"'\n          : 'style=\"padding-left: 20px; margin: 20px 0;\"';\n        processedLines.push(`<${listType} ${listStyle}>${listItems.join('')}</${listType}>`);\n        listItems = [];\n        inList = false;\n        listType = null;\n      }\n      processedLines.push(line);\n    }\n  }\n  \n  if (inList) {\n    const listStyle = listType === 'ul' \n      ? 'style=\"list-style: none; padding-left: 0; margin: 20px 0;\"'\n      : 'style=\"padding-left: 20px; margin: 20px 0;\"';\n    processedLines.push(`<${listType} ${listStyle}>${listItems.join('')}</${listType}>`);\n  }\n  \n  html = processedLines.join('\\n');\n  \n  // 10. Wrap remaining text in styled paragraphs\n  const finalLines = html.split('\\n');\n  const wrappedLines = finalLines.map(line => {\n    line = line.trim();\n    if (!line || line.startsWith('<') || line.startsWith('<!--')) return line;\n    return `<p style=\"color: #333; line-height: 1.8; margin: 15px 0; font-size: 16px;\">${line}</p>`;\n  });\n  \n  return wrappedLines\n    .join('\\n')\n    .replace(/\\n{3,}/g, '\\n\\n');\n}\n\n// Smart title extraction\nfunction extractTitle(text) {\n  const lines = text.split('\\n').map(l => l.trim()).filter(l => l);\n  \n  if (lines.length === 0) return \"Untitled Post\";\n  \n  let title = lines[0];\n  \n  title = title\n    .replace(/^#{1,6}\\s+/, '')\n    .replace(/[*_~`]/g, '')\n    .replace(/\\[([^\\]]+)\\]\\([^)]+\\)/g, '$1')\n    .trim();\n  \n  if (title.length > 100) {\n    title = title.substring(0, 97) + '...';\n  }\n  \n  if (title.length < 3) {\n    const firstSentence = text.match(/[^.!?]+[.!?]+/)?.[0] || lines[0];\n    title = firstSentence.replace(/[#*_~`]/g, '').trim().substring(0, 100);\n  }\n  \n  return title || \"Untitled Post\";\n}\n\nconst title = extractTitle(ollamaResponse);\nconst lines = ollamaResponse.split('\\n');\nconst contentLines = lines.slice(1).filter(l => l.trim() !== '');\nconst content = contentLines.join('\\n');\nconst htmlContent = markdownToHTML(content);\n\nreturn {\n  json: {\n    title: title,\n    content: htmlContent,\n    status: 'draft',\n    wordCount: content.split(/\\s+/).length,\n    rawMarkdown: ollamaResponse\n  }\n};"
+      },
+      "id": "3c7ce1ff-ea9e-4195-b20f-78a0f74e16c6",
+      "name": "Parse Ollama Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -784
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://shivaprogramming.com/blog/wp-json/wp/v2/posts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "n8n-workflow/1.0"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "title",
+              "value": "={{ $json.title }}"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.content }}"
+            },
+            {
+              "name": "status",
+              "value": "draft"
+            },
+            {
+              "name": "comment_status",
+              "value": "open"
+            },
+            {
+              "name": "ping_status",
+              "value": "open"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "5d63e866-c2d7-4eaa-9142-116f549e0140",
+      "name": "Create WordPress Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        -784
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "fWgpB2htoFjfbpAo",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"post_url\": \"{{ $json.link }}\",\n  \"post_id\": \"{{ $json.id }}\",\n  \"title\": \"{{ $json.title.rendered }}\",\n  \"message\": \"Blog post created successfully in draft mode\",\n  \"edit_url\": \"https://shivaprogramming.com/blog/wp-admin/post.php?post={{ $json.id }}&action=edit\"\n}",
+        "options": {}
+      },
+      "id": "026e36e3-b283-4867-a43b-0c85514504d5",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        848,
+        -784
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Generate Content with Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Content with Ollama": {
+      "main": [
+        [
+          {
+            "node": "Parse Ollama Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Ollama Response": {
+      "main": [
+        [
+          {
+            "node": "Create WordPress Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create WordPress Post": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6bb0fb1b62db2f0ae997d0e5b7873fa44bc0e7f1e7f05c9f662bbdedb36a9498"
+  }
+}
