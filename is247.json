@@ -1,0 +1,147 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "62379402-aab2-4805-9150-6be5f03b2876",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1264,
+        320
+      ],
+      "webhookId": "5a8510f0-c4b3-4715-b892-cdca6baa54c2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.chatInput }}",
+        "options": {
+          "systemMessage": "You are a hYou are an expert Java Programming Instructor. Your goal is to help students understand Java concepts, syntax, and best practices clearly and concisely.\n\n### CRITICAL RULES:\n1. ONLY ANSWER JAVA QUESTIONS: If a student asks about other programming languages (Python, C++, etc.) or unrelated topics, politely inform them that you are specialized strictly in Java.\n2. CODE FORMATTING: Always wrap Java code in triple backticks with the language specified, like this: ```java [code here] ```.\n3. EXPLAIN THE \"WHY\": Don't just give the code. Briefly explain how the logic works and mention relevant Java-specific concepts (e.g., JVM, Memory Management, Object-Oriented Principles).\n4. VERSION AWARENESS: Default to Java 17 or 21 (LTS) syntax unless the student specifies otherwise.\n5. STUDENT-FRIENDLY: Use helpful analogies for complex topics like Polymorphism, Interfaces, or Multithreading.\n\n### RESPONSE STRUCTURE:\n- Direct Answer: A brief summary of the solution.\n- Code Example: A clean, well-commented code snippet.\n- Key Points: 2-3 bullet points explaining the most important parts of the code.\n- Warning/Tip: A common \"gotcha\" or a performance tip related to the topic.\n\nIf the input is not a question or is ambiguous, ask the student for clarification to provide the best Java-related assistance.elpful assistant",
+          "returnIntermediateSteps": false
+        }
+      },
+      "id": "7556ff30-d86e-46a7-8397-76bfeb348709",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        -1024,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "model": "qwen3:4b",
+        "options": {
+          "format": "json"
+        }
+      },
+      "id": "5cf5d2ad-957b-4773-9896-07d83a943b8f",
+      "name": "Ollama Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        576
+      ],
+      "credentials": {
+        "ollamaApi": {
+          "id": "miqQDSIcyCS7CmQM",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"output\": $json.output } }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "id": "fa2c2522-25c4-4f32-b4a9-dee31aa18fa2",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -656,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## n8n Workflow: Website AI Chat (Java Instructor)\n\nThis n8n workflow creates a backend API that integrates a local **Ollama** LLM to serve as an expert Java Programming Instructor. It is designed to be called via a Webhook from a website frontend.\n\n## 🚀 Workflow Overview\n\nThe workflow follows a linear logic path to handle incoming chat requests, process them using an AI Agent, and return a CORS-ready response.\n\n\n\n### 🧱 Nodes in the Workflow\n\n1.  **Webhook (Trigger)**\n    * **Method:** `POST`\n    * **Path:** `ai-chat`\n    * **Input Expected:** A JSON body containing `chatInput`.\n\n2.  **AI Agent (Logic Layer)**\n    * Acts as the \"Brain\" of the operation.\n    * **System Prompt:** Configures the AI as a Java Expert.\n    * **Key Rules:** * Only answers Java questions.\n        * Forces code formatting in ` ```java ` blocks.\n        * Explains the \"Why\" behind the logic.\n        * Structures responses with Direct Answer, Code Example, Key Points, and Tips.\n\n3.  **Ollama Chat Model (Engine)**\n    * **Model:** `qwen3:4b`\n    * **Configuration:** Set to JSON format for structured data handling.\n    * **Connection:** Connects via local credentials to a self-hosted Ollama instance.\n\n4.  **Respond to Webhook (Output)**\n    * Sends the AI's response back to the requester.\n    * **CORS Headers:** Includes `Access-Control-Allow-Origin: *` to allow browser-based requests from any domain.\n\n---\n\n## 🛠️ Configuration Details\n\n### System Instructions\nThe agent is strictly instructed to remain in character as a Java Instructor. If a user asks about Python, C++, or non-coding topics, the agent will politely decline to answer.\n\n### API Specifications\nTo interact with this workflow, send a request to your n8n production webhook URL:\n\n**Request:**\n```bash\ncurl -X POST https://your-n8n-domain.com/webhook/ai-chat \\\n-H \"Content-Type: application/json\" \\\n-d '{\"chatInput\": \"How do I use a HashMap?\"}'\n\n### Requirements\nn8n version supporting LangChain nodes.\n\nOllama installed and running on the same network as n8n.\n\nThe qwen3:4b model pulled locally (ollama pull qwen3:4b).\n\nConfigured Ollama API Credentials in n8n.",
+        "height": 1744,
+        "width": 608
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2080,
+        208
+      ],
+      "typeVersion": 1,
+      "id": "63b105a1-971b-40e8-b853-3db862898342",
+      "name": "Sticky Note"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "6bb0fb1b62db2f0ae997d0e5b7873fa44bc0e7f1e7f05c9f662bbdedb36a9498"
+  }
+}
